@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Global Stats — Dashboard</title>
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #07090f;
+      --surface: #0e1117;
+      --card:    #101520;
+      --border:  #1e2535;
+      --red:     #e53935;
+      --blue:    #2979ff;
+      --teal:    #00bfa5;
+      --gold:    #ffd740;
+      --purple:  #ab47bc;
+      --text:    #e8eaf0;
+      --muted:   #6b7794;
+      --radius:  10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: 220px;
+      height: 100vh;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: var(--red);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+
+    .logo-text { font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .logo-sub  { font-size: 9px; color: var(--muted); font-family: monospace; letter-spacing: .08em; }
+
+    nav { padding: 12px 0; flex: 1; }
+
+    .nav-section {
+      padding: 14px 18px 4px;
+      font-size: 9px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: monospace;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 18px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+
+    nav a:hover, nav a.active {
+      color: var(--text);
+      background: rgba(255,255,255,.04);
+      border-left-color: var(--red);
+    }
+
+    nav a .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    nav a:hover .dot, nav a.active .dot { background: var(--red); }
+
+    /* ── MAIN ────────────────────────────────────────────────────── */
+    .main {
+      margin-left: 220px;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ──────────────────────────────────────────────────── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: rgba(7,9,15,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 50;
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .topbar-meta {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: monospace;
+      letter-spacing: .08em;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: monospace;
+      letter-spacing: .06em;
+    }
+    .badge-red    { background: rgba(229,57,53,.15);  color: var(--red);    border: 1px solid rgba(229,57,53,.3);  }
+    .badge-blue   { background: rgba(41,121,255,.15); color: var(--blue);   border: 1px solid rgba(41,121,255,.3); }
+    .badge-teal   { background: rgba(0,191,165,.15);  color: var(--teal);   border: 1px solid rgba(0,191,165,.3);  }
+    .badge-gold   { background: rgba(255,215,64,.15); color: var(--gold);   border: 1px solid rgba(255,215,64,.3); }
+    .badge-purple { background: rgba(171,71,188,.15); color: var(--purple); border: 1px solid rgba(171,71,188,.3); }
+
+    /* ── CONTENT ─────────────────────────────────────────────────── */
+    .content { padding: 32px; display: flex; flex-direction: column; gap: 40px; }
+
+    /* ── SECTION ─────────────────────────────────────────────────── */
+    .section { display: flex; flex-direction: column; gap: 20px; }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-bar {
+      width: 4px; height: 22px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .section-title { font-size: 17px; font-weight: 800; }
+    .section-sub   { font-size: 11px; color: var(--muted); font-family: monospace; margin-left: 4px; }
+
+    /* ── CARD ────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: monospace;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 14px;
+      border-radius: 2px;
+      background: var(--red);
+      flex-shrink: 0;
+    }
+
+    .card img {
+      width: 100%;
+      border-radius: 6px;
+      display: block;
+    }
+
+    .card-note {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.7;
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+    }
+
+    .card-note strong { color: var(--text); }
+
+    /* ── GRID ────────────────────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    .col-full { grid-column: 1 / -1; }
+
+    /* ── INTERP BOX ──────────────────────────────────────────────── */
+    .interp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .interp-item {
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+
+    .interp-item strong { display: block; margin-bottom: 4px; font-size: 12.5px; color: var(--text); }
+
+    /* ── DECISION BOX ────────────────────────────────────────────── */
+    .decision-box {
+      background: linear-gradient(135deg, rgba(229,57,53,.1), rgba(255,100,0,.05));
+      border: 2px solid var(--red);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .decision-label {
+      font-size: 9px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--red);
+      font-family: monospace;
+      margin-bottom: 10px;
+    }
+
+    .decision-title { font-size: 19px; font-weight: 900; line-height: 1.4; margin-bottom: 10px; }
+    .decision-body  { font-size: 13px; color: #ccc; line-height: 1.85; }
+
+    /* ── SCROLLBAR ───────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── ANCHOR OFFSET (sticky header) ──────────────────────────── */
+    [id] { scroll-margin-top: 70px; }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main    { margin-left: 0; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .interp-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">▶</div>
+    <div>
+      <div class="logo-text">YouTube Stats</div>
+      <div class="logo-sub">Dashboard · 995 chaînes</div>
+    </div>
+  </div>
+
+  <nav>
+    <div class="nav-section">Variables qualitatives</div>
+    <a href="#country"><span class="dot"></span>Country</a>
+    <a href="#channel-type"><span class="dot"></span>Channel Type</a>
+
+    <div class="nav-section">Variables quantitatives</div>
+    <a href="#video-views"><span class="dot"></span>Video Views</a>
+    <a href="#uploads"><span class="dot"></span>Uploads</a>
+    <a href="#earnings"><span class="dot"></span>Earnings</a>
+    <a href="#subscribers"><span class="dot"></span>Subscribers</a>
+
+    <div class="nav-section">Conclusion</div>
+    <a href="#decision"><span class="dot"></span>Décision finale</a>
+  </nav>
+</aside>
+
+<!-- ══ MAIN ═════════════════════════════════════════════════════════════════ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <span class="topbar-title">Global YouTube Statistics</span>
+      <span class="topbar-meta" style="margin-left:14px;">Analysis_cols · 8 colonnes · 995 entrées</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <span class="badge badge-red">subscribers</span>
+      <span class="badge badge-gold">video views</span>
+      <span class="badge badge-purple">uploads</span>
+      <span class="badge badge-teal">earnings</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ COUNTRY ══════════════════════════════════════════════════════════ -->
+    <section id="country" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--blue)"></div>
+        <div>
+          <span class="section-title">Country</span>
+          <span class="section-sub">— variable qualitative · 50 pays uniques + Unknown</span>
+        </div>
+        <span class="badge badge-blue" style="margin-left:auto;">Catégorielle</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Barplot — toutes valeurs</div>
+          <img src="data:image/png;base64,{{ charts.country_barplot }}" alt="country barplot" />
+          <p class="card-note">Les catégories sont classées par ordre décroissant. Déséquilibre important entre les pays — USA et Inde dominent largement.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Top 10 pays — Bar chart</div>
+          <img src="data:image/png;base64,{{ charts.country_top10_bar }}" alt="country top10 bar" />
+          <p class="card-note">Les États-Unis (37,9%) et l'Inde (20,3%) représentent plus de la moitié du total à eux deux.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Top 10 pays — Diagramme circulaire (Pie)</div>
+          <img src="data:image/png;base64,{{ charts.country_top10_pie }}" alt="country pie" />
+          <p class="card-note">Visualisation des proportions. "Unknown" (14,8%) représente les chaînes sans pays renseigné — imputé dans le notebook.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Diagramme de Pareto — Country</div>
+          <img src="data:image/png;base64,{{ charts.country_pareto }}" alt="country pareto" />
+          <p class="card-note">Principe 80/20 confirmé : quelques pays concentrent la grande majorité des chaînes. La courbe cumulative atteint 80% dès les 3–4 premiers pays.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ CHANNEL TYPE ══════════════════════════════════════════════════════ -->
+    <section id="channel-type" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--teal)"></div>
+        <div>
+          <span class="section-title">Channel Type</span>
+          <span class="section-sub">— variable qualitative · 30 valeurs NaN imputées</span>
+        </div>
+        <span class="badge badge-teal" style="margin-left:auto;">Catégorielle</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Bar chart — Distribution des types</div>
+          <img src="data:image/png;base64,{{ charts.type_bar }}" alt="channel type bar" />
+          <p class="card-note"><strong>Entertainment</strong> est la catégorie nettement dominante (&gt;280 chaînes), devançant <strong>Music</strong> (~200 chaînes). Chute brutale ensuite.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Pie chart — Distribution of Channel Types</div>
+          <img src="data:image/png;base64,{{ charts.type_pie }}" alt="channel type pie" />
+          <p class="card-note">Entertainment (33%) + Music (23%) = <strong>56% du total</strong>. Les catégories comme Autos (0,2%) et Nonprofit (0,3%) sont quasi invisibles.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Diagramme de Pareto — Channel Type</div>
+        <img src="data:image/png;base64,{{ charts.type_pareto }}" alt="channel type pareto" />
+        <p class="card-note">Entertainment et Music dominent clairement. La courbe rouge cumulative confirme que 2 catégories suffisent pour expliquer plus de 55% de la distribution.</p>
+      </div>
+    </section>
+
+    <!-- ══ VIDEO VIEWS ════════════════════════════════════════════════════════ -->
+    <section id="video-views" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--gold)"></div>
+        <div>
+          <span class="section-title">Video Views</span>
+          <span class="section-sub">— variable quantitative · distribution asymétrique à droite</span>
+        </div>
+        <span class="badge badge-gold" style="margin-left:auto;">Quantitative</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Histogramme (bins=90)</div>
+          <img src="data:image/png;base64,{{ charts.views_hist }}" alt="views hist" />
+          <p class="card-note">Distribution <strong>asymétrique à droite</strong>, unimodale. Forte concentration à gauche — majorité des chaînes ont peu de vues.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Courbe de densité (KDE)</div>
+          <img src="data:image/png;base64,{{ charts.views_kde }}" alt="views kde" />
+          <p class="card-note">Un seul pic, distribution unimodale. La queue droite très étirée confirme la présence de quelques chaînes avec un volume de vues exceptionnel.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Boîte à moustaches (Boxplot)</div>
+          <img src="data:image/png;base64,{{ charts.views_boxplot }}" alt="views boxplot" />
+          <p class="card-note">La médiane est proche du bas de la boîte → <strong>distribution asymétrique à droite</strong>. Boîte étroite = faible dispersion typique. Moustache supérieure très longue.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Diagramme en violon</div>
+          <img src="data:image/png;base64,{{ charts.views_violin }}" alt="views violin" />
+          <p class="card-note">Partie inférieure très large → majorité des chaînes ont peu de vues. Largeur de la boîte très petite = faible dispersion interne.</p>
+        </div>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-item">
+          <strong>📊 Forme</strong>
+          Distribution unimodale asymétrique à droite. Un seul pic net visible sur l'histogramme et la KDE.
+        </div>
+        <div class="interp-item">
+          <strong>📍 Concentration</strong>
+          Forte concentration à gauche. La majorité des vues sont concentrées dans la partie basse de la distribution.
+        </div>
+        <div class="interp-item">
+          <strong>⚠️ Décision</strong>
+          Appliquer une <strong style="color:var(--teal)">transformation logarithmique</strong> sur "video views" pour normaliser et rendre les modèles plus fiables.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ UPLOADS ════════════════════════════════════════════════════════════ -->
+    <section id="uploads" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--purple)"></div>
+        <div>
+          <span class="section-title">Uploads</span>
+          <span class="section-sub">— variable quantitative · extrêmes TV indiennes</span>
+        </div>
+        <span class="badge badge-purple" style="margin-left:auto;">Quantitative</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Histogramme (bins=40)</div>
+          <img src="data:image/png;base64,{{ charts.uploads_hist }}" alt="uploads hist" />
+          <p class="card-note">Distribution <strong>asymétrique à droite</strong>, unimodale. La majorité des chaînes publient peu de vidéos.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Courbe de densité (KDE)</div>
+          <img src="data:image/png;base64,{{ charts.uploads_kde }}" alt="uploads kde" />
+          <p class="card-note">Un seul pic visible, queue droite très étirée vers les chaînes TV indiennes (ex. SET India : 116 536 uploads).</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Boîte à moustaches (Boxplot)</div>
+          <img src="data:image/png;base64,{{ charts.uploads_boxplot }}" alt="uploads boxplot" />
+          <p class="card-note">Médiane proche du bas de la boîte → asymétrie droite confirmée. Moustache supérieure extrêmement longue = outliers majeurs.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Diagramme en violon</div>
+          <img src="data:image/png;base64,{{ charts.uploads_violin }}" alt="uploads violin" />
+          <p class="card-note">Partie inférieure très large → majorité des chaînes ont publié peu de vidéos. Queue vers le haut = quelques cas extrêmes.</p>
+        </div>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-item">
+          <strong>📊 Forme</strong>
+          Unimodale asymétrique à droite. La distribution des uploads suit le même schéma que "video views".
+        </div>
+        <div class="interp-item">
+          <strong>📍 Concentration</strong>
+          La majorité des chaînes publient entre 1 et 500 vidéos. Très peu dépassent 10 000 (chaînes TV).
+        </div>
+        <div class="interp-item">
+          <strong>⚠️ Décision</strong>
+          Transformation logarithmique nécessaire. Traiter et analyser les outliers (SET India, Zee TV…).
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ EARNINGS ════════════════════════════════════════════════════════════ -->
+    <section id="earnings" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--gold)"></div>
+        <div>
+          <span class="section-title">Earnings Midpoint</span>
+          <span class="section-sub">— (lowest + highest yearly earnings) / 2</span>
+        </div>
+        <span class="badge badge-gold" style="margin-left:auto;">Quantitative</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Histogramme — Distribution des revenus moyens</div>
+          <img src="data:image/png;base64,{{ charts.earn_hist }}" alt="earn hist" />
+          <p class="card-note">Distribution asymétrique à droite. Les revenus se concentrent autour d'une petite zone, les valeurs extrêmes sont rares.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Courbe de densité (KDE)</div>
+          <img src="data:image/png;base64,{{ charts.earn_kde }}" alt="earn kde" />
+          <p class="card-note">Forme asymétrique positive. Distribution unimodale — pic près de 0. Les revenus se concentrent au début, autour de la moyenne (0,38M).</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Diagramme en violon</div>
+          <img src="data:image/png;base64,{{ charts.earn_violin }}" alt="earn violin" />
+          <p class="card-note">Visualise la densité et les valeurs extrêmes. Queue supérieure étirée = quelques YouTubeurs avec des revenus très élevés.</p>
+        </div>
+        <div class="card">
+          <div class="card-title">Boîte à moustaches — Visualisation des valeurs extrêmes</div>
+          <img src="data:image/png;base64,{{ charts.earn_boxplot }}" alt="earn boxplot" />
+          <p class="card-note">Boîte étroite → IQR faible, majorité dans une plage réduite. Médiane dans la partie basse = asymétrie confirmée. Valeurs extrêmes bien visibles.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ SUBSCRIBERS ════════════════════════════════════════════════════════ -->
+    <section id="subscribers" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--red)"></div>
+        <div>
+          <span class="section-title">Subscribers</span>
+          <span class="section-sub">— variable quantitative · étendue [12.3M, 245M]</span>
+        </div>
+        <span class="badge badge-red" style="margin-left:auto;">Quantitative</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Courbe de densité (KDE) — Distribution des abonnés</div>
+          <img src="data:image/png;base64,{{ charts.subs_kde }}" alt="subs kde" />
+          <p class="card-note">
+            Distribution <strong>fortement asymétrique à droite</strong> (asymétrie positive). Unimodale avec un pic unique.
+            Suit une loi exponentielle — probabilité diminue rapidement. Zoom sur [0–150M].
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title">Diagramme en points — Chaque valeur individuellement</div>
+          <img src="data:image/png;base64,{{ charts.subs_dotplot }}" alt="subs dotplot" />
+          <p class="card-note">
+            Chaque chaîne = un point sur l'axe horizontal. Densité élevée autour de <strong style="color:var(--red)">15–25M</strong>.
+            9 points isolés &gt;100M = outliers (super-chaînes). Queue droite très étirée.
+          </p>
+        </div>
+      </div>
+
+      <div class="interp-grid">
+        <div class="interp-item">
+          <strong>1. Forme de la distribution</strong>
+          Fortement asymétrique à droite. Unimodale (un seul pic). Suit la loi exponentielle.
+        </div>
+        <div class="interp-item">
+          <strong>2. Dispersion réelle</strong>
+          Étendue complète [12.3M, 245M]. Densité des points plus élevée autour de 15–25M. Dispersion gigantesque.
+        </div>
+        <div class="interp-item">
+          <strong>3. Valeurs isolées (outliers)</strong>
+          9 chaînes &gt;100M (super-chaînes) hors du nuage principal. Distribution à queue droite très étirée confirmée.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ DÉCISION FINALE ════════════════════════════════════════════════════ -->
+    <section id="decision" class="section">
+      <div class="section-header">
+        <div class="section-bar" style="background:var(--red)"></div>
+        <div>
+          <span class="section-title">Décision finale</span>
+          <span class="section-sub">— conclusion du notebook</span>
+        </div>
+      </div>
+
+      <div class="decision-box">
+        <div class="decision-label">🎯 Analyse · Décision stratégique</div>
+        <div class="decision-title">
+          Investir dans les chaînes entre
+          <span style="color:var(--red)">15M et 25M</span> d'abonnés
+        </div>
+        <div class="decision-body">
+          Ces chaînes sont <strong style="color:var(--text)">en croissance, encore accessibles, et avec une audience engagée</strong>.
+          Elles représentent la zone de transition avant l'explosion, idéale pour un investissement précoce
+          (sponsoring, co-production, acquisition). Pour une stratégie réaliste et rentable, il faut travailler
+          avec la masse des chaînes entre <strong style="color:var(--gold)">15M et 50M d'abonnés</strong> —
+          là où se trouve la vraie opportunité commerciale — plutôt que de courir après des géants inaccessibles.
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+  // Active link on scroll
+  const sections = document.querySelectorAll("section[id]");
+  const links    = document.querySelectorAll("nav a");
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.remove("active"));
+        const active = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (active) active.classList.add("active");
+      }
+    });
+  }, { rootMargin: "-30% 0px -60% 0px" });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
